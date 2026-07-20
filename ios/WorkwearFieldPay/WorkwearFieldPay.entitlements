@@ -2,7 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.developer.proximity-reader.payment.acceptance</key>
-	<true/>
+	<!--
+	  Empty by default so the app can be signed with a FREE Apple ID for the
+	  simulator-mode demo (SIMULATOR_MODE = true in src/constants/config.ts).
+
+	  For the REAL Tap to Pay build (SIMULATOR_MODE = false), you need a paid
+	  Apple Developer account with the Apple-approved Tap to Pay entitlement.
+	  Add the "Tap to Pay on iPhone" capability in Xcode (Signing &
+	  Capabilities), or add this key manually:
+
+	    <key>com.apple.developer.proximity-reader.payment.acceptance</key>
+	    <true/>
+	-->
 </dict>
 </plist>

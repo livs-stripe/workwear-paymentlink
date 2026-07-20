@@ -6,6 +6,20 @@ import {
 import {SIMULATOR_MODE} from '../constants/config';
 import {createPaymentIntent} from '../lib/api';
 
+// Discovery method:
+// - Live demo (SIMULATOR_MODE = false): real "tapToPay" (needs the Apple
+//   Tap to Pay entitlement + a paid Apple Developer account).
+// - Free/no-entitlement demo (SIMULATOR_MODE = true): "bluetoothScan" against
+//   the SDK's built-in simulated reader. This requires NO entitlement, so it
+//   builds and runs on a device signed with a free Apple ID, and still creates
+//   real PaymentIntents on your Stripe account. Only the physical tap is faked.
+const DISCOVERY_METHOD: 'tapToPay' | 'bluetoothScan' = SIMULATOR_MODE
+  ? 'bluetoothScan'
+  : 'tapToPay';
+
+// Test card presented by the simulated reader (always approves).
+const SIMULATED_CARD = '4242424242424242';
+
 export interface ChargeResult {
   amountCents: number;
   last4?: string;
@@ -29,6 +43,7 @@ export function useTerminalPayments() {
     collectPaymentMethod,
     // Newer SDKs expose confirmPaymentIntent; older betas call this processPayment.
     confirmPaymentIntent,
+    setSimulatedCard,
     connectedReader,
     discoveredReaders,
     initialize,
@@ -46,10 +61,10 @@ export function useTerminalPayments() {
   const autoConnect = useCallback(
     async (candidate: Reader.Type) => {
       const {reader: connectedRdr, error} = await connectReader({
-        discoveryMethod: 'tapToPay',
+        discoveryMethod: DISCOVERY_METHOD,
         reader: candidate,
-        // locationId is required for Tap to Pay; fall back to the reader's
-        // registered location when available.
+        // locationId is required for both methods; simulated readers carry a
+        // mock location, otherwise fall back to the reader's own location.
         locationId: candidate.locationId ?? '',
       });
       if (error) {
@@ -59,9 +74,13 @@ export function useTerminalPayments() {
       if (connectedRdr) {
         setReader(connectedRdr);
         setConnected(true);
+        // In simulator mode, tell the virtual reader which card to present.
+        if (SIMULATOR_MODE) {
+          await setSimulatedCard(SIMULATED_CARD);
+        }
       }
     },
-    [connectReader],
+    [connectReader, setSimulatedCard],
   );
 
   const startDiscovery = useCallback(async () => {
@@ -69,7 +88,7 @@ export function useTerminalPayments() {
     try {
       await initialize?.();
       const {error} = await discoverReaders({
-        discoveryMethod: 'tapToPay',
+        discoveryMethod: DISCOVERY_METHOD,
         simulated: SIMULATOR_MODE,
       });
       if (error) {

@@ -66,13 +66,8 @@ This is the **only** value you must change after deploying.
 
 ## 3. Run the React Native app on a device
 
-Tap to Pay requires a **physical iPhone** (iPhone XS or newer, iOS 16.7+) with
-Xcode and a paid Apple Developer account that has the *Tap to Pay on iPhone*
-entitlement approved. **Tap to Pay cannot run in the iOS Simulator** — the
-simulator has no NFC/proximity reader hardware.
-
 The native `ios/` and `android/` projects are committed to this repo, so you do
-not need to generate them. Install dependencies and pods:
+not need to generate them. First install dependencies and pods:
 
 ```bash
 # install JS dependencies
@@ -87,55 +82,75 @@ cd ios && pod install && cd ..
 > setups), you can install with `npm install --ignore-scripts`. That dev tool is
 > only used for local Vercel emulation and is not needed to build the app.
 
-### Required one-time Xcode setup (needs your Apple Developer account)
+There are **two ways to run this**, depending on whether you have a paid Apple
+Developer account. Pick the one you need — the toggle is a single line in
+`src/constants/config.ts`.
 
-The following steps require **your** Apple ID/Team and cannot be automated:
+### Option A — Demo on a FREE Apple account (default, `SIMULATOR_MODE = true`)
 
-1. Open the workspace (not the `.xcodeproj`):
+This is the default in the repo. It uses the Stripe Terminal **simulated reader**
+via the `bluetoothScan` discovery method, which needs **no Apple entitlement**, so
+you can sign and run on your own iPhone with a **free** Apple ID. It still creates
+**real PaymentIntents** on your Stripe account — only the physical card tap is
+faked (the simulator presents a `4242 4242 4242 4242` test card).
 
+1. Confirm `export const SIMULATOR_MODE = true;` in `src/constants/config.ts`.
+2. `open ios/WorkwearFieldPay.xcworkspace`
+3. Target **WorkwearFieldPay** → **Signing & Capabilities** → check **Automatically
+   manage signing** and select your (free) personal team.
+4. Set a unique **Bundle Identifier** (e.g. `com.yourname.workwearfieldpay`).
+5. **Do not** add the Tap to Pay capability — the entitlements file is intentionally
+   empty so free-account signing works.
+6. Run on your connected iPhone:
    ```bash
-   open ios/WorkwearFieldPay.xcworkspace
+   npx react-native run-ios --device
+   ```
+7. On the phone, trust the developer cert: **Settings → General → VPN & Device
+   Management → (your Apple ID) → Trust**. Free-provisioned apps expire after ~7
+   days; just re-run to reinstall.
+
+> Still runs on a **real device**, not the iOS Simulator — the Terminal SDK needs
+> a device to initialize even the simulated reader.
+
+### Option B — Real Tap to Pay (`SIMULATOR_MODE = false`, paid account)
+
+Real Tap to Pay requires a **physical iPhone XS or newer, iOS 16.7+**, a **paid
+Apple Developer account**, and the **Apple-approved Tap to Pay entitlement**
+(request it at
+<https://developer.apple.com/contact/request/tap-to-pay-on-iphone/>).
+
+1. Set `export const SIMULATOR_MODE = false;` in `src/constants/config.ts`.
+2. `open ios/WorkwearFieldPay.xcworkspace` → **Signing & Capabilities**, select your
+   paid **Team** and a unique bundle ID.
+3. Click **+ Capability → Tap to Pay on iPhone**. This adds the
+   `com.apple.developer.proximity-reader.payment.acceptance` entitlement (the
+   entitlements file has a commented template). Your account must be approved.
+4. ```bash
+   npx react-native run-ios --device
    ```
 
-2. Select the **WorkwearFieldPay** target → **Signing & Capabilities**.
-3. Check **Automatically manage signing** and choose your **Team**.
-4. Set a unique **Bundle Identifier** (the default is
-   `org.reactjs.native.example.WorkwearFieldPay`).
-5. Click **+ Capability** and add **Tap to Pay on iPhone**. This corresponds to
-   the `com.apple.developer.proximity-reader.payment.acceptance` entitlement,
-   which is already present in
-   `ios/WorkwearFieldPay/WorkwearFieldPay.entitlements`. Your Apple Developer
-   account must be approved for this entitlement by Apple.
-
-Then run on a connected device:
-
-```bash
-npx react-native run-ios --device
-```
-
-For Android Tap to Pay, run on a supported physical device (Android with NFC,
-`minSdkVersion` is set to 26):
+For Android, run on a supported physical device with NFC (`minSdkVersion` is 26):
 
 ```bash
 npx react-native run-android
 ```
 
-> **Note on iOS deployment target:** the Podfile pins `platform :ios, '16.0'`
-> because Tap to Pay on iPhone requires iOS 16.7+.
+> **iOS deployment target:** the Podfile pins `platform :ios, '16.0'` because
+> Tap to Pay on iPhone requires iOS 16.7+.
 
 ---
 
-## 4. Toggle simulator mode
+## 4. The simulator toggle
 
-For local testing without the Tap to Pay entitlement, use Stripe's Terminal
-simulator. In **`src/constants/config.ts`**:
+One line in **`src/constants/config.ts`** switches between the two modes above:
 
 ```ts
-export const SIMULATOR_MODE = true;  // simulated reader, no hardware
-// export const SIMULATOR_MODE = false; // live Tap to Pay for the demo
+export const SIMULATOR_MODE = true;   // Option A: simulated reader, free account
+// export const SIMULATOR_MODE = false; // Option B: real Tap to Pay, paid account
 ```
 
-It's a one-line toggle — flip it back to `false` for the live demo.
+Internally this selects the discovery method: `bluetoothScan` (simulated, no
+entitlement) vs. `tapToPay` (real). No other code changes are needed.
 
 ---
 
