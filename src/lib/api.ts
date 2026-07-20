@@ -1,10 +1,24 @@
 import axios from 'axios';
-import {API_BASE_URL, CURRENCY} from '../constants/config';
+import {
+  API_BASE_URL,
+  CURRENCY,
+  VERCEL_PROTECTION_BYPASS,
+} from '../constants/config';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  headers: {'Content-Type': 'application/json'},
+  headers: {
+    'Content-Type': 'application/json',
+    // Bypasses Vercel Deployment Protection (SSO) for programmatic requests.
+    // No-op when the secret is empty / protection is disabled.
+    ...(VERCEL_PROTECTION_BYPASS
+      ? {
+          'x-vercel-protection-bypass': VERCEL_PROTECTION_BYPASS,
+          'x-vercel-set-bypass-cookie': 'true',
+        }
+      : {}),
+  },
 });
 
 /**
