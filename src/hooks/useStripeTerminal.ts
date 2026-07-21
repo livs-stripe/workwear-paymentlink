@@ -34,6 +34,8 @@ export interface ChargeResult {
 export function useTerminalPayments() {
   const [connected, setConnected] = useState(false);
   const [discovering, setDiscovering] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const [reader, setReader] = useState<Reader.Type | null>(null);
 
   const {
@@ -86,7 +88,6 @@ export function useTerminalPayments() {
   const startDiscovery = useCallback(async () => {
     setDiscovering(true);
     try {
-      await initialize?.();
       const {error} = await discoverReaders({
         discoveryMethod: DISCOVERY_METHOD,
         simulated: SIMULATOR_MODE,
@@ -97,13 +98,45 @@ export function useTerminalPayments() {
     } finally {
       setDiscovering(false);
     }
-  }, [discoverReaders, initialize]);
+  }, [discoverReaders]);
 
-  // Kick off discovery once on mount.
+  // Initialize the SDK exactly once. Every Terminal action (discover, connect,
+  // charge) throws "First initialize the Stripe Terminal SDK before performing
+  // any action" until initialize() has resolved successfully, so we must await
+  // it and confirm there's no error before touching discovery.
   useEffect(() => {
-    void startDiscovery();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const {error} = await initialize();
+        if (cancelled) {
+          return;
+        }
+        if (error) {
+          setInitError(error.message);
+          return;
+        }
+        setInitError(null);
+        setInitialized(true);
+      } catch (err) {
+        if (!cancelled) {
+          setInitError(
+            err instanceof Error ? err.message : 'Failed to initialize reader',
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialize]);
+
+  // Only start discovery after the SDK is confirmed initialized.
+  useEffect(() => {
+    if (initialized) {
+      void startDiscovery();
+    }
+  }, [initialized, startDiscovery]);
 
   // Keep local connection state in sync with the SDK's connectedReader.
   useEffect(() => {
@@ -158,6 +191,8 @@ export function useTerminalPayments() {
   return {
     connected,
     discovering,
+    initialized,
+    initError,
     reader,
     discoveredReaders,
     startDiscovery,
