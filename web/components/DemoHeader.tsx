@@ -7,6 +7,7 @@ const NAV = [
   { label: "NSW Gov", href: "/demo/nsw-gov" },
   { label: "Invoicing", href: "/demo/invoicing" },
   { label: "Checkout", href: "/demo/checkout" },
+  { label: "Customers", href: "/demo/customers" },
   { label: "Event Stream", href: "/demo/events" },
 ];
 

@@ -70,7 +70,7 @@ export default function SiteFooter() {
             Workwear Group Pty Ltd · ABN 12 345 678 901 · A Wesfarmers company
           </span>
           <span className="uppercase tracking-[0.16em]">
-            Payments powered by Stripe
+            Unified Payments Platform
           </span>
         </div>
       </div>

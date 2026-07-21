@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import DemoIntro from "@/components/DemoIntro";
 import ProductImage from "@/components/ProductImage";
 import PaymentElementForm from "@/components/PaymentElementForm";
 import StripeChip from "@/components/StripeChip";
@@ -162,29 +161,19 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <DemoIntro
-        eyebrow="B2B Portal Checkout — SAP Commerce Cloud"
-        title="Portal Checkout"
-        problem="Corporate buyers ordering through Workwear's B2B web portal need to pay at checkout, not just get invoiced."
-        solution="Stripe integrates directly into SAP Commerce Cloud via a pre-built connector (Stripe OPF — Orchestration Payments). Buyers see a payment form at checkout, pay by card, and the order is confirmed. For NET-terms clients, the invoice path takes over instead."
-        meta={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              Embedded in SAP Commerce Cloud via Stripe OPF
-            </span>
-            <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              Card at checkout vs invoice on account
-            </span>
-          </div>
-        }
-      />
-
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-charcoal-light">
-          A representative B2B storefront. In production this checkout is
-          rendered inside SAP Commerce Cloud; the payment step is served by
-          Stripe through the OPF connector.
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+            B2B Portal Checkout
+          </p>
+          <h1 className="mt-1 text-3xl font-bold uppercase tracking-[0.02em] text-charcoal heading-din">
+            Portal Checkout
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-charcoal-light">
+            The Workwear Group B2B web portal storefront. Buyers pay by card at
+            checkout; NET-terms accounts are invoiced on account instead.
+          </p>
+        </div>
         <button
           onClick={resetDemo}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -367,7 +356,7 @@ export default function CheckoutPage() {
             {clientSecret && !order && (
               <div className="mt-5 border-t border-gray-200 pt-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
-                  Payment — Stripe (via OPF connector)
+                  Payment
                 </p>
                 <PaymentElementForm
                   clientSecret={clientSecret}
@@ -403,8 +392,8 @@ export default function CheckoutPage() {
                 <p className="mt-2 text-sm text-charcoal">
                   This order will be invoiced on your{" "}
                   <span className="font-semibold">NET 30 terms</span>. No card is
-                  charged at checkout — Stripe Invoicing emails the invoice and
-                  payment link to accounts payable.
+                  charged at checkout — the invoice and payment link are emailed
+                  to accounts payable.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <StripeChip id={invoiceResult.id} type="invoice" />

@@ -9,38 +9,66 @@ export function OPTIONS() {
   return optionsResponse();
 }
 
+interface CustomerRow {
+  id: string;
+  name: string;
+  email: string;
+  created: number;
+  enterprise: boolean;
+}
+
+function toRow(c: Stripe.Customer): CustomerRow {
+  return {
+    id: c.id,
+    name: c.name ?? "Unnamed account",
+    email: c.email ?? "",
+    created: c.created,
+    enterprise: c.metadata?.source === ENTERPRISE_SOURCE,
+  };
+}
+
 /**
- * Lists the seeded Workwear Group enterprise customers (real Stripe Customer
- * objects tagged with metadata.source = "workwear_portal").
+ * Lists Workwear Group customers (real Stripe Customer objects).
+ * By default returns the seeded enterprise accounts (metadata.source =
+ * "workwear_portal"). Pass ?all=1 to list every customer in the account.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const all =
+      searchParams.get("all") === "1" || searchParams.get("scope") === "all";
+
     const stripe = getStripe();
     const byId = new Map<string, Stripe.Customer>();
 
-    try {
-      const res = await stripe.customers.search({
-        query: `metadata["source"]:"${ENTERPRISE_SOURCE}"`,
-        limit: 100,
-      });
-      for (const c of res.data) byId.set(c.id, c);
-    } catch {
-      // Search unavailable — fall back to a list scan.
-    }
-
-    if (byId.size === 0) {
+    if (all) {
       for await (const c of stripe.customers.list({ limit: 100 })) {
-        if (c.metadata?.source === ENTERPRISE_SOURCE) byId.set(c.id, c);
+        byId.set(c.id, c);
+      }
+    } else {
+      try {
+        const res = await stripe.customers.search({
+          query: `metadata["source"]:"${ENTERPRISE_SOURCE}"`,
+          limit: 100,
+        });
+        for (const c of res.data) byId.set(c.id, c);
+      } catch {
+        // Search unavailable — fall back to a list scan.
+      }
+      if (byId.size === 0) {
+        for await (const c of stripe.customers.list({ limit: 100 })) {
+          if (c.metadata?.source === ENTERPRISE_SOURCE) byId.set(c.id, c);
+        }
       }
     }
 
     const customers = Array.from(byId.values())
-      .map((c) => ({
-        id: c.id,
-        name: c.name ?? "Unnamed account",
-        email: c.email ?? "",
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .map(toRow)
+      // Enterprise accounts first, then most recently created.
+      .sort((a, b) => {
+        if (a.enterprise !== b.enterprise) return a.enterprise ? -1 : 1;
+        return b.created - a.created;
+      });
 
     return jsonResponse({ customers });
   } catch (err) {

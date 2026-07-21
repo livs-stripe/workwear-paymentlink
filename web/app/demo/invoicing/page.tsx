@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import StatusBadge, { type Status } from "@/components/StatusBadge";
 import StripeChip from "@/components/StripeChip";
-import DemoIntro from "@/components/DemoIntro";
 import CustomerSelect, {
   type EnterpriseCustomer,
 } from "@/components/CustomerSelect";
@@ -21,24 +20,7 @@ const TERMS = [
   { label: "NET 60", value: 60 },
 ];
 
-// Representative virtual account details derived deterministically from the
-// invoice id. NOTE: Stripe bank-transfer virtual accounts are not offered for
-// AUD, so this is a clearly-labelled representative account for the demo — the
-// live/hosted payment paths above use real Stripe objects.
-function virtualAccount(seed: string): {
-  bsb: string;
-  account: string;
-  reference: string;
-} {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) {
-    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  const bsb = `80${(2000 + (h % 8000)).toString().padStart(4, "0")}`;
-  const account = (10000000 + (h % 89999999)).toString();
-  const bsbFmt = `${bsb.slice(0, 3)}-${bsb.slice(3)}`;
-  return { bsb: bsbFmt, account, reference: `WWG-${(h % 900000) + 100000}` };
-}
+const GST_RATE = 0.1;
 
 export default function InvoicingPage() {
   const [customer, setCustomer] = useState<EnterpriseCustomer | null>(null);
@@ -57,29 +39,12 @@ export default function InvoicingPage() {
     status: string;
     amount_due: number;
   } | null>(null);
-
-  // Column state
-  const [autoCharge, setAutoCharge] = useState<Status>("processing");
-  const [becs, setBecs] = useState<Status>("pending");
   const [copied, setCopied] = useState(false);
 
+  const locked = Boolean(invoice);
   const subtotal = lineItemsSubtotal(items);
-
-  useEffect(() => {
-    if (!invoice) return;
-    // Auto-charge column animation
-    setAutoCharge("processing");
-    const t1 = setTimeout(() => {
-      setAutoCharge(invoice.status === "paid" ? "paid" : "open");
-    }, 1800);
-    // BECS column simulated settlement
-    setBecs("pending");
-    const t2 = setTimeout(() => setBecs("confirmed"), 3000);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [invoice]);
+  const gst = Math.round(subtotal * GST_RATE);
+  const total = subtotal + gst;
 
   function updateItem(idx: number, patch: Partial<LineItem>) {
     setItems((prev) =>
@@ -87,18 +52,35 @@ export default function InvoicingPage() {
     );
   }
 
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      { description: "", amountCents: 0, quantity: 1 },
+    ]);
+  }
+
+  function removeItem(idx: number) {
+    setItems((prev) => prev.filter((_, i) => i !== idx));
+  }
+
   async function createAndSend() {
     setBusy(true);
     setError(null);
     setInvoice(null);
     try {
+      const lineItems = items.filter(
+        (it) => it.description.trim() !== "" && it.quantity > 0
+      );
+      if (lineItems.length === 0) {
+        throw new Error("Add at least one line item with a description.");
+      }
       const res = await fetch("/api/demo/invoices/create-full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: customer?.id,
           customerName: customer?.name,
-          lineItems: items,
+          lineItems,
           days_until_due: days,
           collection_method: collection,
         }),
@@ -113,12 +95,10 @@ export default function InvoicingPage() {
     }
   }
 
-  function resetDemo() {
+  function resetInvoice() {
     setInvoice(null);
     setItems(INVOICING_LINE_ITEMS);
     setError(null);
-    setAutoCharge("processing");
-    setBecs("pending");
   }
 
   async function copyUrl() {
@@ -134,32 +114,21 @@ export default function InvoicingPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <DemoIntro
-        eyebrow="B2B Invoicing — Enterprise accounts receivable"
-        title="B2B Invoicing"
-        problem="Beyond NSW Gov, Workwear has many corporate clients (Qantas, airports, construction companies) ordering uniforms in bulk. Payment collection is manual and slow."
-        solution="Stripe Invoicing handles the full lifecycle — create the invoice, email it to the client with a payment link, they pay online, and Workwear's system updates automatically. Clients who prefer bank transfer get a virtual account number; clients who want direct debit are set up on BECS."
-        meta={
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              Email + payment link
-            </span>
-            <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              Hosted invoice page
-            </span>
-            <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              Bank transfer
-            </span>
-            <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              BECS direct debit
-            </span>
-          </div>
-        }
-      />
-
-      <div className="mb-6 flex items-center justify-end">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+            Enterprise Accounts Receivable
+          </p>
+          <h1 className="mt-1 text-3xl font-bold uppercase tracking-[0.02em] text-charcoal heading-din">
+            B2B Invoicing
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-charcoal-light">
+            Build and send invoices to enterprise clients ordering in bulk —
+            emailed with a payment link and a hosted invoice page.
+          </p>
+        </div>
         <button
-          onClick={resetDemo}
+          onClick={resetInvoice}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Reset
@@ -174,13 +143,15 @@ export default function InvoicingPage() {
 
       {/* Builder */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-semibold text-charcoal">Invoice Builder</h2>
+        <h2 className="mb-4 font-semibold uppercase tracking-wide text-charcoal heading-din">
+          Invoice Builder
+        </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <CustomerSelect
             value={customer?.id ?? null}
             onChange={setCustomer}
             label="Customer"
-            disabled={Boolean(invoice)}
+            disabled={locked}
           />
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -189,8 +160,9 @@ export default function InvoicingPage() {
               </label>
               <select
                 value={days}
+                disabled={locked}
                 onChange={(e) => setDays(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
               >
                 {TERMS.map((t) => (
                   <option key={t.value} value={t.value}>
@@ -205,56 +177,128 @@ export default function InvoicingPage() {
               </label>
               <select
                 value={collection}
+                disabled={locked}
                 onChange={(e) =>
                   setCollection(
                     e.target.value as "charge_automatically" | "send_invoice"
                   )
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
               >
-                <option value="charge_automatically">
-                  charge_automatically
-                </option>
-                <option value="send_invoice">send_invoice</option>
+                <option value="charge_automatically">Auto-charge on file</option>
+                <option value="send_invoice">Email invoice</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 space-y-2">
-          {items.map((it, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-12 items-center gap-2 text-sm"
+        {/* Line items */}
+        <div className="mt-6">
+          <div className="mb-2 grid grid-cols-12 gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-wwgGrey">
+            <span className="col-span-6">Description</span>
+            <span className="col-span-2 text-right">Qty</span>
+            <span className="col-span-2 text-right">Unit price</span>
+            <span className="col-span-2 text-right">Amount</span>
+          </div>
+          <div className="space-y-2">
+            {items.map((it, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-12 items-center gap-2 text-sm"
+              >
+                <input
+                  value={it.description}
+                  disabled={locked}
+                  placeholder="Item description"
+                  onChange={(e) =>
+                    updateItem(i, { description: e.target.value })
+                  }
+                  className="col-span-6 rounded border border-gray-300 px-2 py-1.5 disabled:bg-gray-100"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={it.quantity}
+                  disabled={locked}
+                  onChange={(e) =>
+                    updateItem(i, { quantity: Number(e.target.value) || 0 })
+                  }
+                  className="col-span-2 rounded border border-gray-300 px-2 py-1.5 text-right disabled:bg-gray-100"
+                />
+                <div className="col-span-2 flex items-center rounded border border-gray-300 px-2 py-1.5 disabled:bg-gray-100">
+                  <span className="mr-1 text-gray-400">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={(it.amountCents / 100).toString()}
+                    disabled={locked}
+                    onChange={(e) =>
+                      updateItem(i, {
+                        amountCents: Math.round(
+                          (Number(e.target.value) || 0) * 100
+                        ),
+                      })
+                    }
+                    className="w-full bg-transparent text-right outline-none disabled:bg-gray-100"
+                  />
+                </div>
+                <div className="col-span-2 flex items-center justify-end gap-2">
+                  <span className="font-medium tabular-nums">
+                    {formatAud(it.amountCents * it.quantity)}
+                  </span>
+                  {!locked && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(i)}
+                      aria-label="Remove item"
+                      className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-brand-light hover:text-brand"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {!locked && (
+            <button
+              type="button"
+              onClick={addItem}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-sm font-medium text-charcoal-light transition-colors hover:border-brand hover:text-brand"
             >
-              <input
-                value={it.description}
-                onChange={(e) => updateItem(i, { description: e.target.value })}
-                className="col-span-7 rounded border border-gray-300 px-2 py-1"
-              />
-              <input
-                type="number"
-                value={it.quantity}
-                onChange={(e) =>
-                  updateItem(i, { quantity: Number(e.target.value) || 0 })
-                }
-                className="col-span-2 rounded border border-gray-300 px-2 py-1"
-              />
-              <span className="col-span-3 text-right font-medium">
-                {formatAud(it.amountCents * it.quantity)}
-              </span>
-            </div>
-          ))}
+              <span className="text-base leading-none">+</span> Add item
+            </button>
+          )}
         </div>
-        <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-3">
-          <span className="font-semibold">Total</span>
-          <span className="text-lg font-bold">{formatAud(subtotal)}</span>
+
+        {/* Totals */}
+        <div className="mt-4 space-y-1.5 border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-charcoal-light">Subtotal</span>
+            <span className="font-medium tabular-nums">
+              {formatAud(subtotal)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-charcoal-light">GST (10%)</span>
+            <span className="font-medium tabular-nums">{formatAud(gst)}</span>
+          </div>
+          <div className="flex items-center justify-between border-t border-gray-100 pt-1.5">
+            <span className="font-semibold uppercase tracking-wide text-charcoal">
+              Total
+            </span>
+            <span className="text-lg font-bold tabular-nums text-charcoal">
+              {formatAud(total)}
+            </span>
+          </div>
         </div>
 
         <button
           onClick={createAndSend}
-          disabled={busy}
-          className="mt-4 w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60 sm:w-auto sm:px-8"
+          disabled={busy || locked}
+          className="mt-5 w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60 sm:w-auto sm:px-8"
         >
           {busy ? "Creating & sending…" : "Create & Send Invoice"}
         </button>
@@ -285,7 +329,7 @@ export default function InvoicingPage() {
               </div>
               <p className="mt-1 text-sm text-charcoal-light">
                 Invoice emailed to {customerName} with a secure payment link —
-                the Stripe hosted invoice page below.
+                the hosted invoice page below.
               </p>
             </div>
             {invoice.hosted_invoice_url && (
@@ -323,7 +367,7 @@ export default function InvoicingPage() {
               </div>
               <iframe
                 src={invoice.hosted_invoice_url}
-                title="Stripe hosted invoice"
+                title="Hosted invoice"
                 className="h-[420px] w-full rounded-lg border border-wwgBorder bg-white"
                 loading="lazy"
               />
@@ -331,110 +375,6 @@ export default function InvoicingPage() {
           )}
         </div>
       )}
-
-      {/* Payment paths */}
-      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-        {/* Auto-charge / email + link */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-charcoal">
-            {collection === "charge_automatically"
-              ? "Auto-Charge"
-              : "Email + Payment Link"}
-          </h3>
-          {!invoice ? (
-            <p className="text-sm text-gray-400">
-              Create an invoice to see collection status.
-            </p>
-          ) : collection === "charge_automatically" ? (
-            <div className="space-y-3">
-              <StatusBadge
-                status={autoCharge}
-                label={
-                  autoCharge === "paid"
-                    ? "Paid ✓"
-                    : autoCharge === "processing"
-                      ? "Charging stored card…"
-                      : "Awaiting card"
-                }
-              />
-              <p className="text-sm text-gray-600">
-                {autoCharge === "paid"
-                  ? `${formatAud(invoice.amount_due)} collected from the stored card on file.`
-                  : "Attempting to charge the customer's stored payment method."}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <StatusBadge status="open" label="Awaiting payment" />
-              <p className="text-sm text-gray-600">
-                Collection method is <code>send_invoice</code>. The client
-                received an email with a payment link and pays online via the
-                hosted invoice page.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Bank transfer — virtual account */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-charcoal">
-            Bank Transfer — Virtual Account
-          </h3>
-          {!invoice ? (
-            <p className="text-sm text-gray-400">
-              Create an invoice to issue a virtual account.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <StatusBadge status="pending" label="Awaiting transfer" />
-              <div className="rounded-lg border border-wwgBorder bg-wwgSurface p-3 text-sm">
-                <VaRow label="Account name" value="Workwear Group Pty Ltd" />
-                <VaRow label="BSB" value={virtualAccount(invoice.id).bsb} />
-                <VaRow
-                  label="Account no."
-                  value={virtualAccount(invoice.id).account}
-                />
-                <VaRow
-                  label="Reference"
-                  value={virtualAccount(invoice.id).reference}
-                />
-              </div>
-              <p className="text-xs text-gray-500">
-                Clients who prefer bank transfer pay to their dedicated virtual
-                account; funds auto-reconcile to this invoice.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* BECS */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-charcoal">
-            BECS Direct Debit
-          </h3>
-          {!invoice ? (
-            <p className="text-sm text-gray-400">
-              Create an invoice to initiate direct debit.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <StatusBadge status={becs} />
-              <p className="text-sm text-gray-600">
-                Direct debit initiated — settlement in 1–3 business days.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function VaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-wwgBorder py-1.5 last:border-0">
-      <span className="text-charcoal-light">{label}</span>
-      <span className="font-mono text-charcoal">{value}</span>
     </div>
   );
 }

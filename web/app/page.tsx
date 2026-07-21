@@ -58,7 +58,7 @@ export default function Home() {
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85">
             From automated government contracts to enterprise invoicing and B2B
             portal checkout — Workwear Group collects every payment across Hard
-            Yakka, KingGee and NNT on a single Stripe-powered platform.
+            Yakka, KingGee and NNT on a single unified platform.
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
             <Link
@@ -214,9 +214,9 @@ export default function Home() {
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Real Stripe objects — customers, invoices, payment intents",
+                "Live records — customers, invoices and payments in one place",
                 "Automated card-on-file charging for contract accounts",
-                "Card, bank transfer, BECS direct debit and payment links",
+                "Card, bank transfer, direct debit and payment links",
               ].map((point) => (
                 <li
                   key={point}
@@ -241,7 +241,7 @@ export default function Home() {
           </h2>
           <p className="max-w-2xl text-lg text-white/90">
             Watch customers, invoices and payments flow across all three
-            channels as they hit Stripe — live.
+            channels as they happen — live.
           </p>
           <Link
             href="/demo/events"

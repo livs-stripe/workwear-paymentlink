@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import PaymentElementForm from "@/components/PaymentElementForm";
 import StripeChip from "@/components/StripeChip";
 import StatusBadge, { type Status } from "@/components/StatusBadge";
-import DemoIntro from "@/components/DemoIntro";
 import {
   NSW_HEALTH_OFFICES,
   NSW_GOV_LINE_ITEMS,
@@ -170,14 +169,15 @@ export default function NswGovPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <DemoIntro
-        eyebrow="NSW Government Contract — Stripe Invoicing + auto-charge"
-        title="NSW Government Contract"
-        urgent
-        problem="19 NSW Health hospitals each have a Citibank corporate card. When Workwear sends them an invoice for uniforms, someone has to manually chase payment. This must become automatic by 30 March 2027 or Workwear loses the contract."
-        solution="Store each hospital's card once. Every time an invoice is generated, Stripe automatically charges it — no human involved. The hospital never has to do anything after the initial setup."
-        meta={
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+            Government Payments · Auto-charge on file
+          </p>
+          <h1 className="mt-1 text-3xl font-bold uppercase tracking-[0.02em] text-charcoal heading-din">
+            NSW Government Contract
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-brand/30 bg-brand-light px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-dark">
               Deadline · 30 March 2027
             </span>
@@ -185,13 +185,10 @@ export default function NswGovPage() {
               19 NSW Health hospitals
             </span>
             <span className="rounded-full border border-wwgBorder bg-wwgSurface px-3 py-1 text-xs font-semibold uppercase tracking-wide text-charcoal-light">
-              Citibank corporate cards
+              Auto-charge on file
             </span>
           </div>
-        }
-      />
-
-      <div className="mb-6 flex items-center justify-end">
+        </div>
         <button
           onClick={resetDemo}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -232,11 +229,11 @@ export default function NswGovPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-wwgBorder bg-wwgSurface px-6 py-4">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-                Stripe Hosted Invoice Page
+                Hosted Invoice Page
               </h2>
               <p className="mt-0.5 text-sm text-charcoal-light">
-                The real Stripe-hosted invoice — also emailed automatically to
-                the hospital's accounts team.
+                The hosted invoice — also emailed automatically to the
+                hospital's accounts team.
               </p>
             </div>
             <a
@@ -250,7 +247,7 @@ export default function NswGovPage() {
           </div>
           <iframe
             src={(hostedUrl ?? paidInfo?.url) as string}
-            title="Stripe hosted invoice"
+            title="Hosted invoice"
             className="h-[520px] w-full bg-white"
             loading="lazy"
           />
@@ -423,7 +420,7 @@ export default function NswGovPage() {
         {/* RIGHT: live data panel */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-            Live Stripe Objects
+            Live Records
           </h2>
           <div className="space-y-4">
             <DataRow label="Purchasing Office" value={office} />

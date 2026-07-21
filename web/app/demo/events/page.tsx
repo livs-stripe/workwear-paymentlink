@@ -80,7 +80,7 @@ export default function EventsPage() {
           <div className="flex items-center gap-3">
             <span className="h-3 w-3 animate-pulse-dot rounded-full bg-green-400" />
             <h1 className="text-lg font-bold text-white">
-              Workwear Stripe Event Stream — Live
+              Workwear Payments Event Stream — Live
             </h1>
           </div>
           <button

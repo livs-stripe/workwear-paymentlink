@@ -4,33 +4,27 @@ const HEADLINE = [
   {
     n: "01",
     title: "NSW Government Contract",
-    accent: "Stripe Invoicing + auto-charge",
-    problem:
-      "19 NSW Health hospitals each pay uniform invoices by hand — someone has to chase every Citibank corporate card.",
-    solution:
-      "Store each hospital's card once. Every invoice is charged automatically — no human involved.",
+    tag: "Auto-charge on file",
+    description:
+      "Store each purchasing office's corporate card once, then charge every uniform invoice automatically — no manual chasing.",
     href: "/demo/nsw-gov",
     urgent: true,
   },
   {
     n: "02",
     title: "B2B Invoicing",
-    accent: "Enterprise accounts receivable",
-    problem:
-      "Qantas, airports and construction clients order in bulk, but payment collection is manual and slow.",
-    solution:
-      "Stripe Invoicing runs the full lifecycle — email + payment link, hosted page, bank transfer or BECS direct debit.",
+    tag: "Enterprise accounts receivable",
+    description:
+      "Bill enterprise clients ordering in bulk and run the full invoice lifecycle — email, payment link, hosted page and direct debit.",
     href: "/demo/invoicing",
     urgent: false,
   },
   {
     n: "03",
     title: "B2B Portal Checkout",
-    accent: "SAP Commerce Cloud — Stripe OPF",
-    problem:
-      "Corporate buyers ordering through the B2B web portal need to pay at checkout, not just get invoiced.",
-    solution:
-      "Stripe embeds into SAP Commerce Cloud. Buyers pay by card at checkout; NET-terms clients are invoiced instead.",
+    tag: "Card at checkout",
+    description:
+      "Corporate buyers pay by card at checkout in the B2B web portal, while NET-terms clients are invoiced on account instead.",
     href: "/demo/checkout",
     urgent: false,
   },
@@ -58,17 +52,17 @@ export default function DemoHub() {
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
           Internal Payments Platform
         </p>
-        <h1 className="mt-2 text-4xl font-bold uppercase tracking-[0.02em] text-charcoal">
+        <h1 className="mt-2 text-4xl font-bold uppercase tracking-[0.02em] text-charcoal heading-din">
           Workwear Group — Digital Payments
         </h1>
         <p className="mt-3 max-w-3xl text-lg text-charcoal-light">
-          Three ways Workwear Group collects payment — a government contract
-          that must be automated, enterprise invoicing at scale, and card
-          payments in the B2B web portal — powered end-to-end by Stripe.
+          Three ways Workwear Group collects payment — an automated government
+          contract, enterprise invoicing at scale, and card payments in the B2B
+          web portal — managed end-to-end from one place.
         </p>
       </div>
 
-      {/* Three headline demos */}
+      {/* Three headline channels */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {HEADLINE.map((card) => (
           <Link
@@ -87,37 +81,22 @@ export default function DemoHub() {
                 </span>
               ) : (
                 <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-wwgGrey">
-                  {card.accent}
+                  {card.tag}
                 </span>
               )}
             </div>
             <div className="flex flex-1 flex-col px-6 py-5">
               {card.urgent && (
                 <span className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-wwgGrey">
-                  {card.accent}
+                  {card.tag}
                 </span>
               )}
-              <h2 className="text-2xl font-bold uppercase leading-tight tracking-[0.02em] text-charcoal">
+              <h2 className="text-2xl font-bold uppercase leading-tight tracking-[0.02em] text-charcoal heading-din">
                 {card.title}
               </h2>
-              <div className="mt-4 space-y-3 text-sm">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-charcoal-light">
-                    The problem
-                  </p>
-                  <p className="mt-1 leading-relaxed text-charcoal">
-                    {card.problem}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-dark">
-                    What Stripe does
-                  </p>
-                  <p className="mt-1 leading-relaxed text-charcoal">
-                    {card.solution}
-                  </p>
-                </div>
-              </div>
+              <p className="mt-3 flex-1 leading-relaxed text-charcoal-light">
+                {card.description}
+              </p>
               <span className="mt-6 inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-brand">
                 Open
                 <span className="transition-transform group-hover:translate-x-1">
@@ -141,12 +120,12 @@ export default function DemoHub() {
               Operations
             </span>
           </div>
-          <h2 className="mt-1 text-2xl font-bold uppercase tracking-[0.02em]">
+          <h2 className="mt-1 text-2xl font-bold uppercase tracking-[0.02em] heading-din">
             Live Event Stream
           </h2>
           <p className="mt-1 text-white/70">
             See it all happen live — every customer, invoice and payment across
-            the three channels as it lands in Stripe.
+            the three channels as it lands.
           </p>
         </div>
         <span className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-brand">
@@ -157,7 +136,7 @@ export default function DemoHub() {
         </span>
       </Link>
 
-      {/* Secondary demos */}
+      {/* Secondary tools */}
       <div className="mt-12">
         <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-wwgGrey">
           More tools
@@ -173,7 +152,7 @@ export default function DemoHub() {
                 <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-wwgGrey">
                   {card.accent}
                 </span>
-                <h3 className="mt-1 text-lg font-bold uppercase tracking-[0.02em] text-charcoal">
+                <h3 className="mt-1 text-lg font-bold uppercase tracking-[0.02em] text-charcoal heading-din">
                   {card.title}
                 </h3>
                 <p className="mt-1 text-sm text-charcoal-light">
