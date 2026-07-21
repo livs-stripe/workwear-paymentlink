@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import StripeChip from "@/components/StripeChip";
-import { MOTO_ACCOUNTS, formatAud } from "@/lib/data";
+import CustomerSelect, {
+  type EnterpriseCustomer,
+} from "@/components/CustomerSelect";
+import { formatAud } from "@/lib/data";
 
 const TEST_CARDS = [
   { key: "visa", label: "Visa ···· 4242" },
@@ -11,54 +14,113 @@ const TEST_CARDS = [
   { key: "declined", label: "Declined ···· 0002" },
 ];
 
+interface OpenInvoice {
+  id: string;
+  number: string | null;
+  amount_due: number;
+  currency: string;
+  due_date: number | null;
+  created: number;
+}
+
+function fmtDate(epochSeconds: number | null): string {
+  if (!epochSeconds) return "—";
+  return new Date(epochSeconds * 1000).toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+interface PaidInfo {
+  amount: number;
+  paymentIntent: string;
+  number: string | null;
+}
+
 export default function MotoPage() {
-  const [accountName, setAccountName] = useState(MOTO_ACCOUNTS[0].name);
-  const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
+  const [customer, setCustomer] = useState<EnterpriseCustomer | null>(null);
+  const [invoices, setInvoices] = useState<OpenInvoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
+    null
+  );
   const [note, setNote] = useState("");
   const [card, setCard] = useState("visa");
-  const [piId, setPiId] = useState<string | null>(null);
-  const [succeededPi, setSucceededPi] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paid, setPaid] = useState<PaidInfo | null>(null);
 
-  const account =
-    MOTO_ACCOUNTS.find((a) => a.name === accountName) ?? MOTO_ACCOUNTS[0];
+  const seededRef = useRef(false);
+
   const invoice =
-    account.invoices.find((i) => i.ref === selectedInvoice) ?? null;
+    invoices.find((i) => i.id === selectedInvoiceId) ?? null;
+
+  const loadInvoices = useCallback(async (customerId: string) => {
+    setLoadingInvoices(true);
+    setError(null);
+    try {
+      let res = await fetch(
+        `/api/demo/moto/invoices?customer=${encodeURIComponent(customerId)}`
+      );
+      let data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to load invoices");
+
+      // Seed outstanding invoices once if this account has none yet.
+      if ((data.invoices ?? []).length === 0 && !seededRef.current) {
+        seededRef.current = true;
+        const seedRes = await fetch("/api/demo/moto/seed-invoices", {
+          method: "POST",
+        });
+        if (seedRes.ok) {
+          res = await fetch(
+            `/api/demo/moto/invoices?customer=${encodeURIComponent(customerId)}`
+          );
+          data = await res.json();
+        }
+      }
+
+      setInvoices(data.invoices ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load invoices");
+    } finally {
+      setLoadingInvoices(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!customer?.id) return;
+    setSelectedInvoiceId(null);
+    setPaid(null);
+    loadInvoices(customer.id);
+  }, [customer?.id, loadInvoices]);
 
   async function takePayment() {
     if (!invoice) return;
     setBusy(true);
     setError(null);
-    setPiId(null);
-    setSucceededPi(null);
     try {
-      const res = await fetch("/api/demo/moto/create-intent", {
+      const res = await fetch("/api/demo/moto/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amountCents: invoice.amountCents,
-          customer_name: account.name,
-          invoice_ref: invoice.ref,
-          note,
-        }),
+        body: JSON.stringify({ invoice: invoice.id, card, note }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
-      setPiId(data.id);
 
-      const confirmRes = await fetch("/api/demo/moto/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: data.id, card }),
-      });
-      const confirmData = await confirmRes.json();
-      if (!confirmRes.ok) throw new Error(confirmData.error ?? "Failed");
-      if (confirmData.status === "succeeded") {
-        setSucceededPi(confirmData.id);
+      if (data.invoice_status === "paid") {
+        setPaid({
+          amount: invoice.amount_due,
+          paymentIntent: data.payment_intent,
+          number: invoice.number,
+        });
+        setSelectedInvoiceId(null);
+        setNote("");
+        // Re-fetch open invoices so the just-paid invoice drops off the list.
+        if (customer?.id) await loadInvoices(customer.id);
       } else {
         throw new Error(
-          `Payment ${confirmData.status ?? "was not completed"} — try another card.`
+          `Payment ${data.payment_status ?? "was not completed"} — try another card.`
         );
       }
     } catch (e) {
@@ -69,12 +131,12 @@ export default function MotoPage() {
   }
 
   function reset() {
-    setSelectedInvoice(null);
+    setSelectedInvoiceId(null);
     setNote("");
     setCard("visa");
-    setPiId(null);
-    setSucceededPi(null);
+    setPaid(null);
     setError(null);
+    if (customer?.id) loadInvoices(customer.id);
   }
 
   return (
@@ -106,65 +168,60 @@ export default function MotoPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* LEFT: account lookup */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Customer account
-          </label>
-          <select
-            value={accountName}
-            onChange={(e) => {
-              setAccountName(e.target.value);
-              setSelectedInvoice(null);
-              setPiId(null);
-              setSucceededPi(null);
-            }}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          >
-            {MOTO_ACCOUNTS.map((a) => (
-              <option key={a.name} value={a.name}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+          <CustomerSelect
+            value={customer?.id ?? null}
+            onChange={setCustomer}
+            label="Customer account"
+          />
 
           <h3 className="mb-2 mt-5 text-sm font-semibold uppercase tracking-wider text-gray-500">
             Outstanding invoices
           </h3>
           <div className="space-y-2">
-            {account.invoices.map((inv) => {
-              const active = selectedInvoice === inv.ref;
-              return (
-                <button
-                  key={inv.ref}
-                  onClick={() => {
-                    setSelectedInvoice(inv.ref);
-                    setPiId(null);
-                    setSucceededPi(null);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
-                    active
-                      ? "border-brand bg-brand-light"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div>
-                    <p className="font-medium text-charcoal">
-                      Invoice #{inv.ref}
-                    </p>
-                    <p className="text-xs text-gray-500">Due {inv.due}</p>
-                  </div>
-                  <span className="font-bold">
-                    {formatAud(inv.amountCents)}
-                  </span>
-                </button>
-              );
-            })}
+            {loadingInvoices ? (
+              <p className="py-4 text-sm text-gray-400">Loading invoices…</p>
+            ) : invoices.length === 0 ? (
+              <p className="py-4 text-sm text-gray-400">
+                No outstanding invoices for this account.
+              </p>
+            ) : (
+              invoices.map((inv) => {
+                const active = selectedInvoiceId === inv.id;
+                return (
+                  <button
+                    key={inv.id}
+                    onClick={() => {
+                      setSelectedInvoiceId(inv.id);
+                      setPaid(null);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
+                      active
+                        ? "border-brand bg-brand-light"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-medium text-charcoal">
+                        Invoice {inv.number ?? inv.id}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Due {fmtDate(inv.due_date)}
+                      </p>
+                    </div>
+                    <span className="font-bold">
+                      {formatAud(inv.amount_due)}
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {invoice && (
             <div className="mt-4 rounded-lg bg-gray-50 p-4">
               <p className="text-sm font-medium text-gray-700">
-                Take payment for Invoice #{invoice.ref} —{" "}
-                {formatAud(invoice.amountCents)}
+                Take payment for Invoice {invoice.number ?? invoice.id} —{" "}
+                {formatAud(invoice.amount_due)}
               </p>
               <label className="mb-1 mt-3 block text-xs font-medium text-gray-600">
                 Note (optional, added to payment metadata)
@@ -190,17 +247,17 @@ export default function MotoPage() {
             exemption is flagged on the PaymentIntent at confirmation.
           </div>
 
-          {succeededPi ? (
+          {paid ? (
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
               <p className="font-semibold text-green-800">
-                Payment succeeded — {invoice && formatAud(invoice.amountCents)}
+                Invoice {paid.number ?? ""} paid — {formatAud(paid.amount)}
               </p>
               <p className="mt-1 text-sm text-green-700">
-                Charged as a MOTO transaction (SCA-exempt) — no cardholder
-                authentication required.
+                Charged as a MOTO transaction (SCA-exempt). The invoice is now
+                marked paid and has dropped off the outstanding list.
               </p>
               <div className="mt-2">
-                <StripeChip id={succeededPi} type="payment_intent" />
+                <StripeChip id={paid.paymentIntent} type="payment_intent" />
               </div>
             </div>
           ) : !invoice ? (
@@ -223,11 +280,6 @@ export default function MotoPage() {
                   </option>
                 ))}
               </select>
-              {piId && !succeededPi && (
-                <div className="mb-3">
-                  <StripeChip id={piId} type="payment_intent" />
-                </div>
-              )}
               <button
                 onClick={takePayment}
                 disabled={busy}
@@ -235,7 +287,7 @@ export default function MotoPage() {
               >
                 {busy
                   ? "Charging…"
-                  : `Charge ${formatAud(invoice.amountCents)}`}
+                  : `Charge ${formatAud(invoice.amount_due)}`}
               </button>
             </>
           )}

@@ -8,12 +8,12 @@ const NAV = [
   { label: "Invoicing", href: "/demo/invoicing" },
   { label: "Checkout", href: "/demo/checkout" },
   { label: "Customers", href: "/demo/customers" },
-  { label: "Event Stream", href: "/demo/events" },
 ];
 
 const SECONDARY_NAV = [
   { label: "MOTO", href: "/demo/moto" },
   { label: "Payment Links", href: "/demo/payment-links" },
+  { label: "Event Stream", href: "/demo/events" },
 ];
 
 export default function DemoHeader() {

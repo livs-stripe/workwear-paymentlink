@@ -3,37 +3,6 @@ import DemoHeader from "@/components/DemoHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { WWG_IMAGES, BRAND_TILES } from "@/lib/brand";
 
-const STATS = [
-  { value: "3", label: "World-class workwear brands" },
-  { value: "19", label: "NSW Health hospitals automated" },
-  { value: "NET 30", label: "Enterprise terms, collected on time" },
-  { value: "1", label: "Unified payments platform" },
-];
-
-const CHANNELS = [
-  {
-    n: "01",
-    title: "Government Contracts",
-    copy: "Store each agency's corporate card once, then auto-charge every invoice — no chasing, no manual reconciliation.",
-    href: "/demo/nsw-gov",
-    cta: "NSW Government",
-  },
-  {
-    n: "02",
-    title: "Enterprise Invoicing",
-    copy: "Bill Qantas, Australia Post and construction majors at scale — hosted invoices, payment links, bank transfer and BECS.",
-    href: "/demo/invoicing",
-    cta: "B2B Invoicing",
-  },
-  {
-    n: "03",
-    title: "B2B Portal Checkout",
-    copy: "Corporate buyers pay by card at checkout inside SAP Commerce Cloud, while NET-terms accounts are invoiced automatically.",
-    href: "/demo/checkout",
-    cta: "Portal Checkout",
-  },
-];
-
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
@@ -74,63 +43,6 @@ export default function Home() {
               Explore the Platform
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* STATS BAR */}
-      <section className="border-b border-wwgBorder bg-white">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px bg-wwgBorder md:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.label} className="bg-white px-6 py-8 text-center">
-              <p className="heading-din text-3xl font-bold text-brand">
-                {s.value}
-              </p>
-              <p className="mt-1 text-sm leading-snug text-charcoal-light">
-                {s.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* HOW PAYMENTS WORK */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">
-            How we get paid
-          </p>
-          <h2 className="heading-din mt-3 text-3xl font-bold uppercase text-charcoal sm:text-4xl">
-            Three channels, one platform
-          </h2>
-          <p className="mt-4 text-lg text-charcoal-light">
-            Every way Workwear Group collects money from its partners and
-            customers — unified, automated and reconciled end-to-end.
-          </p>
-        </div>
-        <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {CHANNELS.map((c) => (
-            <Link
-              key={c.n}
-              href={c.href}
-              className="group flex flex-col rounded-xl border border-wwgBorder bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:border-brand hover:shadow-lg"
-            >
-              <span className="heading-din text-4xl font-bold text-wwgBorder transition-colors group-hover:text-brand">
-                {c.n}
-              </span>
-              <h3 className="heading-din mt-4 text-2xl font-bold uppercase text-charcoal">
-                {c.title}
-              </h3>
-              <p className="mt-3 flex-1 leading-relaxed text-charcoal-light">
-                {c.copy}
-              </p>
-              <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.08em] text-brand">
-                {c.cta}
-                <span className="transition-transform group-hover:translate-x-1">
-                  →
-                </span>
-              </span>
-            </Link>
-          ))}
         </div>
       </section>
 
