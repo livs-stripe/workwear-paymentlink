@@ -52,6 +52,24 @@ export const INVOICING_LINE_ITEMS: LineItem[] = [
   },
 ];
 
+export const PAYMENT_LINK_LINE_ITEMS: LineItem[] = [
+  {
+    description: "Hard Yakka FLC Shirt (Navy, L)",
+    amountCents: 5995,
+    quantity: 120,
+  },
+  {
+    description: "KingGee Stretch Cargo (Khaki, 32R)",
+    amountCents: 10995,
+    quantity: 80,
+  },
+  {
+    description: "NNT Uniform Shirt (White, M)",
+    amountCents: 7995,
+    quantity: 60,
+  },
+];
+
 export interface MotoAccount {
   name: string;
   invoices: { ref: string; amountCents: number; due: string }[];

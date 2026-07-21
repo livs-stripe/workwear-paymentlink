@@ -8,6 +8,7 @@ const NAV = [
   { label: "Invoicing", href: "/demo/invoicing" },
   { label: "MOTO", href: "/demo/moto" },
   { label: "Event Stream", href: "/demo/events" },
+  { label: "Payment Links", href: "/demo/payment-links" },
 ];
 
 export default function DemoHeader() {

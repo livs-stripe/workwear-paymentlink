@@ -19,6 +19,7 @@ const BADGE: Record<EventType, string> = {
   "payment_intent.failed": "bg-red-500/20 text-red-400 border-red-500/40",
   "invoice.finalized": "bg-orange-500/20 text-orange-400 border-orange-500/40",
   "customer.created": "bg-gray-500/20 text-gray-300 border-gray-500/40",
+  "payment_link.created": "bg-red-500/20 text-red-400 border-red-500/40",
 };
 
 function fmtTime(ts: number): string {

@@ -4,7 +4,8 @@ export type EventType =
   | "invoice.finalized"
   | "invoice.paid"
   | "payment_intent.succeeded"
-  | "payment_intent.failed";
+  | "payment_intent.failed"
+  | "payment_link.created";
 
 export interface DemoEvent {
   id: string;

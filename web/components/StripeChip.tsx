@@ -8,6 +8,7 @@ type ChipType =
   | "setup_intent"
   | "invoice"
   | "payment_intent"
+  | "payment_link"
   | "charge";
 
 const ICONS: Record<ChipType, string> = {
@@ -16,6 +17,7 @@ const ICONS: Record<ChipType, string> = {
   setup_intent: "🔧",
   invoice: "🧾",
   payment_intent: "⚡",
+  payment_link: "🔗",
   charge: "✓",
 };
 
