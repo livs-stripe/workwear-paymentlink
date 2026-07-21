@@ -97,7 +97,7 @@ export default function EventsPage() {
               onClick={() => setFilter(f.value)}
               className={`rounded px-3 py-1 text-xs transition-colors ${
                 filter === f.value
-                  ? "bg-workwear-orange text-white"
+                  ? "bg-brand text-white"
                   : "border border-gray-700 text-gray-400 hover:bg-white/5"
               }`}
             >
@@ -124,7 +124,7 @@ export default function EventsPage() {
                   >
                     {e.type}
                   </span>
-                  <span className="text-workwear-orange">{e.objectId}</span>
+                  <span className="text-brand">{e.objectId}</span>
                   <span className="flex-1 text-gray-300">{e.summary}</span>
                   {typeof e.amount === "number" && (
                     <span className="font-semibold text-white">

@@ -168,7 +168,7 @@ export default function NswGovPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-workwear-ink">
+          <h1 className="text-2xl font-bold text-charcoal">
             NSW Government vCard Auto-Charge
           </h1>
           <p className="text-gray-600">
@@ -208,7 +208,7 @@ export default function NswGovPage() {
                 href={paidInfo.url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm font-medium text-workwear-orange underline"
+                className="text-sm font-medium text-brand underline"
               >
                 View hosted invoice →
               </a>
@@ -247,7 +247,7 @@ export default function NswGovPage() {
               <button
                 onClick={beginOnboarding}
                 disabled={busy}
-                className="mt-3 w-full rounded-lg bg-workwear-orange px-4 py-2.5 font-semibold text-white hover:bg-workwear-orange-dark disabled:opacity-60"
+                className="mt-3 w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60"
               >
                 {busy ? "Working…" : "Begin Onboarding"}
               </button>
@@ -330,7 +330,7 @@ export default function NswGovPage() {
                   <button
                     onClick={createInvoice}
                     disabled={busy}
-                    className="mt-3 w-full rounded-lg bg-workwear-orange px-4 py-2.5 font-semibold text-white hover:bg-workwear-orange-dark disabled:opacity-60"
+                    className="mt-3 w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60"
                   >
                     {busy ? "Creating…" : "Create Invoice"}
                   </button>
@@ -361,7 +361,7 @@ export default function NswGovPage() {
                   <button
                     onClick={finalizeInvoice}
                     disabled={busy}
-                    className="w-full rounded-lg bg-workwear-orange px-4 py-2.5 font-semibold text-white hover:bg-workwear-orange-dark disabled:opacity-60"
+                    className="w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60"
                   >
                     {busy ? "Finalizing…" : "Finalize Invoice"}
                   </button>
@@ -452,7 +452,7 @@ function StepCard({
     <div
       className={`rounded-xl border bg-white p-5 shadow-sm transition-colors ${
         active
-          ? "border-workwear-orange ring-1 ring-workwear-orange/30"
+          ? "border-brand ring-1 ring-brand/30"
           : "border-gray-200"
       } ${disabled ? "opacity-60" : ""}`}
     >
@@ -462,13 +462,13 @@ function StepCard({
             done
               ? "bg-green-100 text-green-700"
               : active
-                ? "bg-workwear-orange text-white"
+                ? "bg-brand text-white"
                 : "bg-gray-200 text-gray-600"
           }`}
         >
           {done ? "✓" : n}
         </span>
-        <h3 className="font-semibold text-workwear-ink">{title}</h3>
+        <h3 className="font-semibold text-charcoal">{title}</h3>
       </div>
       {children}
     </div>

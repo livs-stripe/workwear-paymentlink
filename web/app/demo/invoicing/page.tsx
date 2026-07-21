@@ -114,7 +114,7 @@ export default function InvoicingPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-workwear-ink">
+          <h1 className="text-2xl font-bold text-charcoal">
             B2B Invoicing
           </h1>
           <p className="text-gray-600">
@@ -138,7 +138,7 @@ export default function InvoicingPage() {
 
       {/* Builder */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-semibold text-workwear-ink">Invoice Builder</h2>
+        <h2 className="mb-4 font-semibold text-charcoal">Invoice Builder</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -222,7 +222,7 @@ export default function InvoicingPage() {
         <button
           onClick={createAndSend}
           disabled={busy}
-          className="mt-4 w-full rounded-lg bg-workwear-orange px-4 py-2.5 font-semibold text-white hover:bg-workwear-orange-dark disabled:opacity-60 sm:w-auto sm:px-8"
+          className="mt-4 w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60 sm:w-auto sm:px-8"
         >
           {busy ? "Creating & sending…" : "Create & Send Invoice"}
         </button>
@@ -242,7 +242,7 @@ export default function InvoicingPage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Auto-charge */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-workwear-ink">Auto-Charge</h3>
+          <h3 className="mb-3 font-semibold text-charcoal">Auto-Charge</h3>
           {!invoice ? (
             <p className="text-sm text-gray-400">
               Create an invoice to see collection status.
@@ -275,7 +275,7 @@ export default function InvoicingPage() {
 
         {/* BECS */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-workwear-ink">
+          <h3 className="mb-3 font-semibold text-charcoal">
             BECS Direct Debit
           </h3>
           {!invoice ? (
@@ -294,7 +294,7 @@ export default function InvoicingPage() {
 
         {/* Hosted invoice */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-workwear-ink">
+          <h3 className="mb-3 font-semibold text-charcoal">
             Hosted Invoice Page
           </h3>
           {!invoice?.hosted_invoice_url ? (
@@ -307,7 +307,7 @@ export default function InvoicingPage() {
                 <QRCodeCanvas
                   value={invoice.hosted_invoice_url}
                   size={128}
-                  fgColor="#1A1A1A"
+                  fgColor="#2F3540"
                 />
               </div>
               <p className="text-xs text-gray-600">
@@ -319,7 +319,7 @@ export default function InvoicingPage() {
                   href={invoice.hosted_invoice_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 rounded-lg bg-workwear-orange px-3 py-2 text-center text-sm font-semibold text-white hover:bg-workwear-orange-dark"
+                  className="flex-1 rounded-lg bg-brand px-3 py-2 text-center text-sm font-semibold uppercase tracking-wide text-white hover:bg-brand-dark"
                 >
                   Open
                 </a>

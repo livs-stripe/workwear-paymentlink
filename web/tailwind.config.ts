@@ -8,15 +8,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        brand: {
+          DEFAULT: "#DC3D46",
+          dark: "#C2232C",
+          light: "#FBEAEB",
+        },
+        charcoal: {
+          DEFAULT: "#2F3540",
+          light: "#4C515A",
+        },
+        wwgGrey: "#94979C",
+        wwgBorder: "#E5E7EB",
+        wwgSurface: "#F3F4F6",
+        wwgOrange: "#DC6C10",
+        wwgGreen: "#1E7E4F",
+        // Back-compat aliases mapped onto the Workwear Group palette
         workwear: {
-          orange: "#FF6B00",
-          "orange-dark": "#E05F00",
-          "orange-light": "#FFF1E6",
-          ink: "#1A1A1A",
+          orange: "#DC3D46",
+          "orange-dark": "#C2232C",
+          "orange-light": "#FBEAEB",
+          ink: "#2F3540",
         },
       },
       fontFamily: {
         sans: [
+          "Barlow",
+          "ui-sans-serif",
+          "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",
           "Segoe UI",

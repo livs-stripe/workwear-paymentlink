@@ -30,7 +30,7 @@ interface Props {
 
 function TestCardHint() {
   return (
-    <div className="rounded-md border border-dashed border-workwear-orange/50 bg-workwear-orange-light px-3 py-2 text-xs text-workwear-orange-dark">
+    <div className="rounded-md border border-dashed border-brand/50 bg-brand-light px-3 py-2 text-xs text-brand-dark">
       <span className="font-semibold">Test card:</span> {TEST_CARD.number}
       {"  "}·{"  "}Exp {TEST_CARD.exp}
       {"  "}·{"  "}CVC {TEST_CARD.cvc}
@@ -95,7 +95,7 @@ function InnerForm({ mode, onSuccess, submitLabel }: Omit<Props, "clientSecret">
       <button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full rounded-lg bg-workwear-orange px-4 py-2.5 font-semibold text-white transition-colors hover:bg-workwear-orange-dark disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading
           ? "Processing…"
@@ -119,7 +119,7 @@ export default function PaymentElementForm({
       appearance: {
         theme: "stripe" as const,
         variables: {
-          colorPrimary: "#FF6B00",
+          colorPrimary: "#DC3D46",
           borderRadius: "8px",
         },
       },

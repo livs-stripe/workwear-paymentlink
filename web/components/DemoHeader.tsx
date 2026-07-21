@@ -14,15 +14,15 @@ export default function DemoHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="bg-workwear-ink text-white">
+    <header className="border-b border-black/20 bg-charcoal text-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-4">
           <Link href="/demo" className="flex items-center gap-2">
-            <span className="text-xl font-extrabold tracking-tight text-workwear-orange">
+            <span className="text-xl font-bold uppercase tracking-[0.08em] text-brand">
               WORKWEAR GROUP
             </span>
           </Link>
-          <span className="hidden text-xs font-medium uppercase tracking-widest text-white/40 sm:inline">
+          <span className="hidden text-xs font-medium uppercase tracking-[0.18em] text-white/45 sm:inline">
             Payments Portal
           </span>
         </div>
@@ -35,9 +35,9 @@ export default function DemoHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1.5 text-sm font-semibold uppercase tracking-wide transition-colors ${
                     active
-                      ? "bg-workwear-orange text-white"
+                      ? "bg-brand text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
                   }`}
                 >
@@ -46,7 +46,7 @@ export default function DemoHeader() {
               );
             })}
           </nav>
-          <span className="rounded-full bg-workwear-orange px-3 py-1 text-xs font-semibold text-white">
+          <span className="rounded-full bg-brand px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
             Demo Mode
           </span>
         </div>

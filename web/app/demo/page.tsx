@@ -31,13 +31,13 @@ export default function DemoHub() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12">
       <div className="mb-10">
-        <p className="text-sm font-semibold uppercase tracking-widest text-workwear-orange">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
           Internal Payments Platform
         </p>
-        <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-workwear-ink">
+        <h1 className="mt-2 text-4xl font-bold uppercase tracking-[0.02em] text-charcoal">
           Workwear Group — Digital Payments
         </h1>
-        <p className="mt-3 max-w-2xl text-lg text-gray-600">
+        <p className="mt-3 max-w-2xl text-lg text-charcoal-light">
           A unified view of how Workwear Group collects payment across
           government contracts, B2B invoicing, and phone-based finance
           operations — powered end-to-end by Stripe.
@@ -49,18 +49,18 @@ export default function DemoHub() {
           <Link
             key={card.href}
             href={card.href}
-            className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:border-workwear-orange hover:shadow-md"
+            className="group flex flex-col justify-between rounded-lg border border-wwgBorder bg-white p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand hover:shadow-md"
           >
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-wwgGrey">
                 {card.accent}
               </span>
-              <h2 className="mt-2 text-2xl font-bold text-workwear-ink">
+              <h2 className="mt-2 text-2xl font-bold uppercase tracking-[0.02em] text-charcoal">
                 {card.title}
               </h2>
-              <p className="mt-2 text-gray-600">{card.description}</p>
+              <p className="mt-2 text-charcoal-light">{card.description}</p>
             </div>
-            <span className="mt-6 inline-flex items-center gap-1 font-semibold text-workwear-orange">
+            <span className="mt-6 inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-brand">
               Launch demo
               <span className="transition-transform group-hover:translate-x-1">
                 →

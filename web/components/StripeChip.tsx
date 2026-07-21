@@ -48,7 +48,7 @@ export default function StripeChip({
       type="button"
       onClick={copy}
       title={`Click to copy ${id}`}
-      className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 py-1 font-mono text-xs text-gray-700 shadow-sm transition-colors hover:border-workwear-orange hover:bg-workwear-orange-light"
+      className="inline-flex items-center gap-1.5 rounded-full border border-wwgBorder bg-white px-2.5 py-1 font-mono text-xs text-charcoal shadow-sm transition-colors hover:border-brand hover:bg-brand-light"
     >
       <span aria-hidden>{ICONS[type]}</span>
       <span>{truncate(id)}</span>

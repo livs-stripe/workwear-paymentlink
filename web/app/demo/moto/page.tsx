@@ -69,7 +69,7 @@ export default function MotoPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-workwear-ink">
+          <h1 className="text-2xl font-bold text-charcoal">
             MOTO Payment Terminal
           </h1>
           <p className="text-gray-600">
@@ -130,12 +130,12 @@ export default function MotoPage() {
                   }}
                   className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
                     active
-                      ? "border-workwear-orange bg-workwear-orange-light"
+                      ? "border-brand bg-brand-light"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-workwear-ink">
+                    <p className="font-medium text-charcoal">
                       Invoice #{inv.ref}
                     </p>
                     <p className="text-xs text-gray-500">Due {inv.due}</p>
@@ -169,7 +169,7 @@ export default function MotoPage() {
 
         {/* RIGHT: payment collection */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-3 font-semibold text-workwear-ink">
+          <h3 className="mb-3 font-semibold text-charcoal">
             Card Payment (MOTO)
           </h3>
           <div className="mb-4 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
@@ -194,7 +194,7 @@ export default function MotoPage() {
             <button
               onClick={startPayment}
               disabled={busy}
-              className="w-full rounded-lg bg-workwear-orange px-4 py-2.5 font-semibold text-white hover:bg-workwear-orange-dark disabled:opacity-60"
+              className="w-full rounded-lg bg-brand px-4 py-2.5 font-semibold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-60"
             >
               {busy
                 ? "Preparing…"
