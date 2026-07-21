@@ -178,6 +178,87 @@ automatically when you tap **Tap to Pay**.
 
 ---
 
+## B2B Demo Portal (`/web`)
+
+A separate **Next.js 14 (App Router, TypeScript, Tailwind)** web app lives in
+[`/web`](./web). It is a client-facing B2B payments portal for Workwear Group
+and is completely independent of the React Native app and the `/api` functions —
+it has its **own `package.json`** and deploys as a **separate Vercel project**.
+
+The portal is served under **`/demo`**, i.e. the live URL is
+`https://<new-project>.vercel.app/demo`.
+
+### Pages
+
+| Path                | Purpose                                                        |
+| ------------------- | ------------------------------------------------------------- |
+| `/demo`             | Hub landing with four demo cards                              |
+| `/demo/nsw-gov`     | NSW Gov vCard — onboard office, store vCard, auto-charge      |
+| `/demo/invoicing`   | Full invoice lifecycle (auto-charge, BECS, hosted invoice/QR) |
+| `/demo/moto`        | MOTO terminal — finance staff take card payments by phone     |
+| `/demo/events`      | Live Stripe event stream (terminal aesthetic)                 |
+
+API route handlers live under `/web/app/api/demo/*` (customers, setup-intent,
+invoices create/finalize/[id]/create-full, moto create-intent/confirm, events,
+seed-events, reset). They use an **in-memory event store** (no Vercel KV, no
+webhooks) so the Live Event Stream reflects real activity from the demo itself.
+
+### Environment variables (set in the NEW Vercel project)
+
+| Name                                 | Value            |
+| ------------------------------------ | ---------------- |
+| `STRIPE_SECRET_KEY`                  | `sk_test_...`    |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_test_...`    |
+
+Both are **test-mode** keys. See [`web/.env.local.example`](./web/.env.local.example).
+
+### Deploy to Vercel (separate project)
+
+1. In Vercel, **Add New… → Project** and import **this same repo**.
+2. Set **Root Directory = `web`** (this is what keeps it separate from `/api`).
+3. Framework preset auto-detects **Next.js**.
+4. Add the two env vars above (Production + Preview).
+5. Deploy. The portal is live at `https://<new-project>.vercel.app/demo`.
+
+### Local development
+
+```bash
+cd web
+npm install          # use --ignore-scripts if a postinstall fails
+cp .env.local.example .env.local   # then fill in your test keys
+npm run dev          # http://localhost:3000/demo
+```
+
+### Recommended demo run order (for the meeting)
+
+Open the **Event Stream in a second window** first so live activity shows as you
+go, then run:
+
+1. **NSW Gov** (`/demo/nsw-gov`) — onboard an office, store the vCard, generate
+   and finalize an invoice, watch it auto-charge to Paid.
+2. **Invoicing** (`/demo/invoicing`) — build & send an invoice, show the three
+   collection paths and the hosted-invoice QR code.
+3. **MOTO** (`/demo/moto`) — look up a customer, take a card payment by phone.
+4. **Event Stream** (`/demo/events`) — point back to the live feed showing every
+   object created during the walkthrough.
+
+### Resetting between runs
+
+Every page has a **Reset Demo** button that clears its local state; on the NSW
+Gov and Event Stream pages it also calls `POST /api/demo/reset` to clear the
+in-memory event store. The Event Stream re-seeds realistic historical events on
+next load if empty.
+
+### Stripe test cards
+
+- **`4242 4242 4242 4242`** · Exp `12/26` · CVC `123` — successful payment.
+- **`4000 0000 0000 0002`** — declined card (useful to show an error path in MOTO).
+
+The test card values are shown on-screen next to every Payment Element (the
+Stripe Payment Element cannot be pre-filled programmatically).
+
+---
+
 ## Push to GitHub
 
 ```bash
