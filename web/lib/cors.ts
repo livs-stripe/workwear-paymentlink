@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers":
+    "Content-Type, x-vercel-protection-bypass, x-vercel-set-bypass-cookie",
 };
 
 export function corsHeaders(): Record<string, string> {

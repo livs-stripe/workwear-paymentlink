@@ -1,5 +1,8 @@
-// Mobile backend (bare Vercel functions: /api/connection-token, /api/create-payment-intent)
-export const API_BASE_URL = 'https://workwear-ten.vercel.app';
+// Mobile backend. Points at the workwear-paymentlink deployment so Tap to Pay
+// PaymentIntents land on the SAME Stripe account as the web app (shared
+// STRIPE_SECRET_KEY). The Next.js routes live in /web:
+//   /api/connection-token, /api/create-payment-intent
+export const API_BASE_URL = 'https://workwear-paymentlink.vercel.app';
 
 // Simulator toggle (one-line switch):
 //   true  = simulated reader via "bluetoothScan". Requires NO Apple Tap to Pay

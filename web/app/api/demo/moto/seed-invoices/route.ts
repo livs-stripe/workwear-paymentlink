@@ -123,26 +123,55 @@ async function ensureCustomers(stripe: Stripe): Promise<Stripe.Customer[]> {
   return customers;
 }
 
-export async function POST() {
+function acceptsCard(inv: Stripe.Invoice): boolean {
+  return (
+    inv.payment_settings?.payment_method_types?.includes("card") ?? false
+  );
+}
+
+export async function POST(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const reset = searchParams.get("reset") === "1" ||
+      searchParams.get("reset") === "true";
+
     const stripe = getStripe();
     const customers = await ensureCustomers(stripe);
 
     let createdCount = 0;
+    let voidedCount = 0;
 
     for (let i = 0; i < customers.length; i++) {
       const customer = customers[i];
 
-      // Idempotency: skip customers that already have outstanding (open)
-      // seeded invoices so re-running never duplicates.
       const open = await stripe.invoices.list({
         customer: customer.id,
         status: "open",
         limit: 100,
       });
-      const existingSeeded = open.data.filter(
+      let existingSeeded = open.data.filter(
         (inv) => inv.metadata?.channel === MOTO_SEED_CHANNEL
       );
+
+      // Reset/clean-up: void legacy seeded invoices whose PaymentIntent wasn't
+      // pinned to card (they can't be paid as a single MOTO record) so the
+      // re-seed below replaces them with clean card-enabled invoices.
+      if (reset) {
+        for (const inv of existingSeeded) {
+          if (!acceptsCard(inv)) {
+            try {
+              await stripe.invoices.voidInvoice(inv.id);
+              voidedCount += 1;
+            } catch {
+              // best-effort
+            }
+          }
+        }
+        existingSeeded = existingSeeded.filter(acceptsCard);
+      }
+
+      // Idempotency: skip customers that already have outstanding (open)
+      // card-enabled seeded invoices so re-running never duplicates.
       if (existingSeeded.length >= 1) continue;
 
       for (let k = 0; k < TARGET_OPEN_INVOICES; k++) {
@@ -191,7 +220,7 @@ export async function POST() {
       }
     }
 
-    return jsonResponse({ created: createdCount });
+    return jsonResponse({ created: createdCount, voided: voidedCount });
   } catch (err) {
     if (err instanceof MissingStripeKeyError) {
       return errorResponse(err.message, 500);

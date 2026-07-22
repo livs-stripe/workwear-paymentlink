@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { getStripe, MissingStripeKeyError } from "@/lib/stripe";
 import { errorResponse, jsonResponse, optionsResponse } from "@/lib/cors";
 import { recordEvent } from "@/lib/events";
+import { ENTERPRISE_SOURCE } from "@/lib/enterprise";
 
 export const runtime = "nodejs";
 
@@ -9,12 +10,14 @@ export function OPTIONS() {
   return optionsResponse();
 }
 
+const MOTO_SEED_CHANNEL = "moto_seed";
+
 /**
  * True when a Stripe error is about the card/moto payment_method_options path
  * being unsupported on the target call — i.e. the invoice's PaymentIntent was
- * created with dynamic/automatic payment methods (no explicit `card` type), or
- * MOTO isn't available. This is recoverable via the standalone-PI fallback,
- * unlike a genuine decline which must surface to the operator.
+ * created with dynamic/automatic payment methods (no explicit `card` type).
+ * These invoices can't be confirmed with card.moto and are re-issued as a
+ * card-enabled invoice. A genuine decline is NOT this error and must surface.
  */
 function isCardConfigOrMotoError(err: unknown): boolean {
   if (err instanceof Stripe.errors.StripeError) {
@@ -31,66 +34,117 @@ function isCardConfigOrMotoError(err: unknown): boolean {
 }
 
 /**
- * Charge a standalone card PaymentIntent for the invoice amount. Used only as a
- * fallback for invoices whose own PaymentIntent can't accept card.moto (e.g.
- * seeded before payment_settings pinned the PI to card). Retries without the
- * MOTO flag if the account can't claim the MOTO exemption, so the charge still
- * completes and the invoice can be reconciled.
+ * Legacy invoices were seeded before payment_settings pinned the PaymentIntent
+ * to card, so their PI rejects card.moto. To keep exactly ONE payment record
+ * per invoice we DON'T charge a standalone PI + mark paid out of band (that
+ * produced a duplicate). Instead we re-issue the same amount as a fresh
+ * card-enabled invoice, confirm ITS own PaymentIntent with card.moto, and void
+ * the legacy invoice — a single succeeded PI, no duplicate.
  */
-async function chargeStandalone(
+async function reissueAndPay(
   stripe: Stripe,
-  args: {
-    amount: number;
-    currency: string;
-    customer: string | null;
-    paymentMethod: string;
-    invoiceId: string;
-    note?: string;
+  oldInvoice: Stripe.Invoice,
+  paymentMethodId: string,
+  note?: string
+): Promise<{ confirmed: Stripe.PaymentIntent; invoice: Stripe.Invoice }> {
+  const customerId =
+    typeof oldInvoice.customer === "string"
+      ? oldInvoice.customer
+      : (oldInvoice.customer?.id ?? null);
+  if (!customerId) {
+    throw new Error("Invoice has no customer to re-issue against");
   }
-): Promise<Stripe.PaymentIntent> {
-  const base: Stripe.PaymentIntentCreateParams = {
-    amount: args.amount,
-    currency: args.currency,
-    payment_method: args.paymentMethod,
-    payment_method_types: ["card"],
-    confirm: true,
-    off_session: true,
-    ...(args.customer ? { customer: args.customer } : {}),
+
+  // Recreate the same line items (fall back to a single balance line).
+  const lines = oldInvoice.lines?.data ?? [];
+  if (lines.length === 0) {
+    await stripe.invoiceItems.create({
+      customer: customerId,
+      currency: oldInvoice.currency,
+      amount: oldInvoice.amount_due,
+      description: `Outstanding balance (was ${oldInvoice.number ?? oldInvoice.id})`,
+    });
+  } else {
+    for (const line of lines) {
+      await stripe.invoiceItems.create({
+        customer: customerId,
+        currency: oldInvoice.currency,
+        amount: line.amount,
+        description: line.description ?? "Workwear order",
+      });
+    }
+  }
+
+  const draft = await stripe.invoices.create({
+    customer: customerId,
+    collection_method: "send_invoice",
+    days_until_due: 21,
+    auto_advance: false,
+    pending_invoice_items_behavior: "include",
+    payment_settings: { payment_method_types: ["card"] },
     metadata: {
-      channel: "moto",
-      invoice: args.invoiceId,
-      ...(args.note ? { note: args.note } : {}),
+      channel: MOTO_SEED_CHANNEL,
+      source: ENTERPRISE_SOURCE,
+      reissued_from: oldInvoice.id,
     },
-  };
+  });
+  const finalized = await stripe.invoices.finalizeInvoice(draft.id, {
+    expand: ["payment_intent"],
+  });
+  const newPi = finalized.payment_intent as Stripe.PaymentIntent | null;
+  if (!newPi) {
+    throw new Error("Re-issued invoice has no payment intent to confirm");
+  }
+  if (note) {
+    try {
+      await stripe.paymentIntents.update(newPi.id, {
+        metadata: { channel: "moto", note, invoice: finalized.id },
+      });
+    } catch {
+      // metadata is best-effort
+    }
+  }
+
+  let confirmed: Stripe.PaymentIntent;
   try {
-    return await stripe.paymentIntents.create({
-      ...base,
+    confirmed = await stripe.paymentIntents.confirm(newPi.id, {
+      payment_method: paymentMethodId,
       payment_method_options: { card: { moto: true } },
     });
   } catch (err) {
-    if (isCardConfigOrMotoError(err)) {
-      // MOTO exemption unavailable on this account — charge without the flag.
-      return await stripe.paymentIntents.create({
-        ...base,
-        metadata: { ...base.metadata, moto_unavailable: "true" },
-      });
+    // Payment failed (e.g. MOTO not enabled, or decline). Void the freshly
+    // created invoice so we don't leave an extra open one, and keep the
+    // original intact. No charge occurred, so no duplicate record.
+    try {
+      await stripe.invoices.voidInvoice(finalized.id);
+    } catch {
+      // best-effort cleanup
     }
     throw err;
   }
+
+  // Paid successfully → void the legacy invoice so only the paid re-issue
+  // remains outstanding-free.
+  try {
+    await stripe.invoices.voidInvoice(oldInvoice.id);
+  } catch {
+    // best-effort
+  }
+
+  return { confirmed, invoice: finalized };
 }
 
 /**
  * Pays a specific Stripe invoice as a MOTO (mail order / telephone order)
- * transaction.
+ * transaction, producing exactly ONE payment record.
  *
- * Primary path: confirm the invoice's own PaymentIntent with
- * payment_method_options.card.moto = true — `moto` IS accepted by
- * paymentIntents.confirm (never by invoices.pay). On success the invoice's PI
- * succeeds and Stripe transitions the invoice to "paid" automatically.
+ * Primary path: confirm the invoice's OWN PaymentIntent with
+ * payment_method_options.card.moto = true. On success the invoice's PI succeeds
+ * and Stripe transitions the invoice to "paid" automatically.
  *
- * Fallback: for legacy invoices whose PI was created with dynamic payment
- * methods (and therefore rejects card.moto), charge a standalone card MOTO PI
- * and mark the invoice paid out of band so it reconciles and drops off.
+ * Legacy path: if the invoice's PI can't accept card.moto (seeded before the
+ * card payment_settings fix), re-issue the amount as a card-enabled invoice and
+ * pay that one instead — still a single succeeded PI.
  */
 export async function POST(req: Request) {
   try {
@@ -107,6 +161,7 @@ export async function POST(req: Request) {
     }
 
     const stripe = getStripe();
+    const paymentMethodId = body.payment_method;
 
     const invoice = await stripe.invoices.retrieve(body.invoice, {
       expand: ["payment_intent"],
@@ -135,7 +190,6 @@ export async function POST(req: Request) {
     // The PaymentMethod was tokenized client-side via Stripe.js (raw PAN never
     // reaches our server). Attach it to the customer so it's usable for
     // confirmation and reusable for future auto-charges.
-    const paymentMethodId = body.payment_method;
     if (customerId) {
       try {
         await stripe.paymentMethods.attach(paymentMethodId, {
@@ -147,6 +201,7 @@ export async function POST(req: Request) {
     }
 
     let confirmed: Stripe.PaymentIntent;
+    let resultInvoiceId = invoice.id;
 
     if (invoicePi) {
       if (body.note) {
@@ -171,35 +226,29 @@ export async function POST(req: Request) {
       } catch (primaryErr) {
         // Genuine declines / other errors must surface to the operator.
         if (!isCardConfigOrMotoError(primaryErr)) throw primaryErr;
-        // Legacy PI can't accept card.moto → charge standalone + reconcile.
-        confirmed = await chargeStandalone(stripe, {
-          amount: invoice.amount_due,
-          currency: invoice.currency,
-          customer: customerId,
-          paymentMethod: paymentMethodId,
-          invoiceId: invoice.id,
-          note: body.note,
-        });
-        if (confirmed.status === "succeeded") {
-          await stripe.invoices.pay(invoice.id, { paid_out_of_band: true });
-        }
+        // Legacy PI can't accept card.moto → re-issue as a card invoice + pay.
+        const reissued = await reissueAndPay(
+          stripe,
+          invoice,
+          paymentMethodId,
+          body.note
+        );
+        confirmed = reissued.confirmed;
+        resultInvoiceId = reissued.invoice.id;
       }
     } else {
-      // Open invoice without a PaymentIntent (unusual) → standalone + reconcile.
-      confirmed = await chargeStandalone(stripe, {
-        amount: invoice.amount_due,
-        currency: invoice.currency,
-        customer: customerId,
-        paymentMethod: paymentMethodId,
-        invoiceId: invoice.id,
-        note: body.note,
-      });
-      if (confirmed.status === "succeeded") {
-        await stripe.invoices.pay(invoice.id, { paid_out_of_band: true });
-      }
+      // Open invoice without a PaymentIntent (unusual) → re-issue + pay.
+      const reissued = await reissueAndPay(
+        stripe,
+        invoice,
+        paymentMethodId,
+        body.note
+      );
+      confirmed = reissued.confirmed;
+      resultInvoiceId = reissued.invoice.id;
     }
 
-    const updated = await stripe.invoices.retrieve(body.invoice);
+    const updated = await stripe.invoices.retrieve(resultInvoiceId);
     const customerName =
       (typeof updated.customer_name === "string" && updated.customer_name) ||
       "customer";
