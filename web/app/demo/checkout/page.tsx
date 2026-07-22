@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import ProductImage from "@/components/ProductImage";
 import PaymentElementForm from "@/components/PaymentElementForm";
 import StripeChip from "@/components/StripeChip";
@@ -52,6 +52,13 @@ export default function CheckoutPage() {
     amount_due: number;
   } | null>(null);
 
+  // Reuse ONE PaymentIntent per session: guard against duplicate creation
+  // (double-click / StrictMode) and update the amount if the cart total changes
+  // rather than minting a new Incomplete PI.
+  const piIdRef = useRef<string | null>(null);
+  const piAmountRef = useRef<number>(0);
+  const creatingRef = useRef<boolean>(false);
+
   const entries: CartEntry[] = useMemo(
     () =>
       Object.entries(cart)
@@ -90,23 +97,52 @@ export default function CheckoutPage() {
     setError(null);
     try {
       if (buyerType === "card") {
-        const res = await fetch("/api/demo/checkout/create-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amountCents: subtotal,
-            buyer: BUYERS.card.company,
-            cart: entries.map((e) => ({
-              name: e.product.name,
-              sku: e.product.sku,
-              amountCents: e.product.priceCents,
-              quantity: e.qty,
-            })),
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed");
-        setClientSecret(data.client_secret);
+        // Reuse the session's PaymentIntent if one already exists; only update
+        // its amount when the cart total changed. Never create a second PI.
+        if (creatingRef.current) return;
+        if (piIdRef.current) {
+          if (piAmountRef.current !== subtotal) {
+            const res = await fetch("/api/demo/checkout/update-intent", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                paymentIntentId: piIdRef.current,
+                amountCents: subtotal,
+              }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Failed");
+            piAmountRef.current = subtotal;
+            if (data.client_secret) setClientSecret(data.client_secret);
+          } else if (clientSecret) {
+            setClientSecret(clientSecret);
+          }
+        } else {
+          creatingRef.current = true;
+          try {
+            const res = await fetch("/api/demo/checkout/create-intent", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                amountCents: subtotal,
+                buyer: BUYERS.card.company,
+                cart: entries.map((e) => ({
+                  name: e.product.name,
+                  sku: e.product.sku,
+                  amountCents: e.product.priceCents,
+                  quantity: e.qty,
+                })),
+              }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Failed");
+            piIdRef.current = data.id;
+            piAmountRef.current = subtotal;
+            setClientSecret(data.client_secret);
+          } finally {
+            creatingRef.current = false;
+          }
+        }
       } else {
         const res = await fetch("/api/demo/invoices/create-full", {
           method: "POST",
@@ -138,6 +174,9 @@ export default function CheckoutPage() {
   async function onPaid(id: string) {
     setOrder({ id });
     setClientSecret(null);
+    // PI is consumed; a subsequent order starts a fresh one.
+    piIdRef.current = null;
+    piAmountRef.current = 0;
     try {
       await fetch("/api/demo/checkout/confirm", {
         method: "POST",
@@ -157,6 +196,10 @@ export default function CheckoutPage() {
     setOrder(null);
     setInvoiceResult(null);
     setError(null);
+    // New session → allow a fresh PaymentIntent for the next cart.
+    piIdRef.current = null;
+    piAmountRef.current = 0;
+    creatingRef.current = false;
   }
 
   return (
