@@ -20,6 +20,9 @@ target 'WorkwearFieldPay' do
 
   use_react_native!(
     :path => config[:reactNativePath],
+    # Hermes disabled: Santa (binary allowlisting) blocks the hermesc compiler
+    # during the iOS build, so fall back to the JSC engine.
+    :hermes_enabled => false,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
